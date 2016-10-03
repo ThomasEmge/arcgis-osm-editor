@@ -1,4 +1,4 @@
-// (c) Copyright Esri, 2010 - 2013
+// (c) Copyright Esri, 2010 - 2016
 // This source is subject to the Apache 2.0 License.
 // Please see http://www.apache.org/licenses/LICENSE-2.0.html for details.
 // All other rights reserved.
@@ -104,7 +104,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                     return;
                 }
 
-                // find the field that holds tag binary/xml field
+                // find the field that holds tag binary/XML field
                 int osmTagCollectionFieldIndex = osmInputTable.FindField("osmTags");
 
 

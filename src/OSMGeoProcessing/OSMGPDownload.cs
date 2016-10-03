@@ -1,4 +1,4 @@
-// (c) Copyright Esri, 2010 - 2013
+// (c) Copyright Esri, 2010 - 2016
 // This source is subject to the Apache 2.0 License.
 // Please see http://www.apache.org/licenses/LICENSE-2.0.html for details.
 // All other rights reserved.
@@ -237,7 +237,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                 string requestURL = baseURLString.Value + "/api/0.6/map?bbox=" + downloadEnvelope.XMin.ToString("f5", enUSCultureInfo) + "," + downloadEnvelope.YMin.ToString("f5", enUSCultureInfo) + "," + downloadEnvelope.XMax.ToString("f5", enUSCultureInfo) + "," + downloadEnvelope.YMax.ToString("f5", enUSCultureInfo);
                 string osmMasterDocument = downloadOSMDocument(ref message, requestURL, apiCapabilities);
 
-                // check if the initial request was successfull
+                // check if the initial request was successful
                 // it might have failed at this point because too many nodes were requested or because of something else
                 if (String.IsNullOrEmpty(osmMasterDocument))
                 {
@@ -418,7 +418,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                 }
                 #endregion
 
-                IGPEnvironment configKeyword = getEnvironment(envMgr, "configKeyword");
+                IGPEnvironment configKeyword = OSMToolHelper.getEnvironment(envMgr, "configKeyword");
                 IGPString gpString = null;
                 if (configKeyword != null)
                     gpString = configKeyword.Value as IGPString;
@@ -552,6 +552,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
 
                 #region clean any existing data from loading targets
                 ESRI.ArcGIS.Geoprocessing.IGeoProcessor2 gp = new ESRI.ArcGIS.Geoprocessing.GeoProcessorClass();
+                gp.AddToResults = false;
                 IGeoProcessorResult gpResult = new GeoProcessorResultClass();
 
                 try
@@ -650,7 +651,8 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                     {
                         return;
                     }
-                    ESRI.ArcGIS.Geoprocessor.Geoprocessor geoProcessor = new ESRI.ArcGIS.Geoprocessor.Geoprocessor();
+                    IGeoProcessor2 geoProcessor = new GeoProcessorClass() as IGeoProcessor2;
+                    geoProcessor.AddToResults = false;
 
                     #region for local geodatabases enforce spatial integrity
                     bool storedOriginal = geoProcessor.AddOutputsToMap;
@@ -690,8 +692,6 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                     }
                     geoProcessor.AddOutputsToMap = storedOriginal;
                     #endregion
-
-
 
                     #region load relations
                     if (relationCapacity > 0)
@@ -931,7 +931,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
         }
 
         /// <summary>
-        /// Checks if the baseURL can be used to retrieve the OSM server capabilities. All exceptions will be rethrown to the caller.
+        /// Checks if the baseURL can be used to retrieve the OSM server capabilities. All exceptions will be re-thrown to the caller.
         /// </summary>
         /// <param name="baseURL"></param>
         /// <returns></returns>
@@ -1012,27 +1012,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
             return osmDocumentLocation;
         }
 
-        public static IGPEnvironment getEnvironment(IGPEnvironmentManager environmentManager, string name)
-        {
-            IGPUtilities3 gpUtils = new GPUtilitiesClass();
-            IGPEnvironment returnEnv = null;
 
-            try
-            {
-                if (environmentManager.GetLocalEnvironments().Count > 0)
-                    returnEnv = gpUtils.GetEnvironment(environmentManager.GetLocalEnvironments(), name);
-
-                if (returnEnv == null)
-                    returnEnv = gpUtils.GetEnvironment(environmentManager.GetEnvironments(), name);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(ex.Message);
-                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
-            }
-
-            return returnEnv;
-        }
 
         public ESRI.ArcGIS.esriSystem.IName FullName
         {
@@ -1254,7 +1234,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
         {
             IGPUtilities3 gpUtilities3 = new GPUtilitiesClass();
 
-            // check for a valid download url
+            // check for a valid download URL
             IGPParameter downloadURLParameter = paramvalues.get_Element(in_downloadURLNumber) as IGPParameter;
 
             if (downloadURLParameter.HasBeenValidated == false)
@@ -1489,7 +1469,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                             if (osmFileXmlReader.Name == "node")
                             {
                                 string currentNodeString = osmFileXmlReader.ReadOuterXml();
-                                // turn the xml node representation into a node class representation
+                                // turn the XML node representation into a node class representation
                                 node currentNode = nodeSerializer.Deserialize(new System.IO.StringReader(currentNodeString)) as node;
                                 if (!nodeList.Contains(currentNode.id))
                                 {
@@ -1499,7 +1479,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                             else if (osmFileXmlReader.Name == "way")
                             {
                                 string currentWayString = osmFileXmlReader.ReadOuterXml();
-                                // turn the xml way representation into a way class representation
+                                // turn the XML way representation into a way class representation
                                 way currentWay = waySerializer.Deserialize(new System.IO.StringReader(currentWayString)) as way;
                                 if (!wayList.Contains(currentWay.id))
                                 {
@@ -1525,7 +1505,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                             else if (osmFileXmlReader.Name == "relation")
                             {
                                 string currentRelationString = osmFileXmlReader.ReadOuterXml();
-                                // turn the xml way representation into a way class representation
+                                // turn the XML way representation into a way class representation
                                 relation currentRelation = relationSerializer.Deserialize(new System.IO.StringReader(currentRelationString)) as relation;
                                 if (!relationList.Contains(currentRelation.id))
                                 {
@@ -1595,70 +1575,5 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
             }
         }
 
- 
-        private void BuildSpatialIndex(IGPValue gpFeatureClass, Geoprocessor.Geoprocessor geoProcessor, IGPUtilities gpUtil,
-            ITrackCancel trackCancel, IGPMessages message)
-        {
-            if ((gpFeatureClass == null) || (geoProcessor == null) || (gpUtil == null))
-                return;
-
-            // Check if the feature class supports spatial index grids
-            IFeatureClass fc = gpUtil.OpenDataset(gpFeatureClass) as IFeatureClass;
-            if (fc == null)
-                return;
-
-            int idxShapeField = fc.FindField(fc.ShapeFieldName);
-            if (idxShapeField >= 0)
-            {
-                IField shapeField = fc.Fields.get_Field(idxShapeField);
-                if (shapeField.GeometryDef.GridCount > 0)
-                {
-                    if (shapeField.GeometryDef.get_GridSize(0) == -2.0)
-                        return;
-                }
-            }
-
-            // Create the new spatial index grid
-            bool storedOriginal = geoProcessor.AddOutputsToMap;
-
-            try
-            {
-                geoProcessor.AddOutputsToMap = false;
-
-                DataManagementTools.CalculateDefaultGridIndex calculateDefaultGridIndex =
-                    new DataManagementTools.CalculateDefaultGridIndex(gpFeatureClass);
-                IGeoProcessorResult2 gpResults2 =
-                    geoProcessor.Execute(calculateDefaultGridIndex, trackCancel) as IGeoProcessorResult2;
-                message.AddMessages(gpResults2.GetResultMessages());
-
-                if (gpResults2 != null)
-                {
-                    DataManagementTools.RemoveSpatialIndex removeSpatialIndex =
-                        new DataManagementTools.RemoveSpatialIndex(gpFeatureClass.GetAsText());
-                    removeSpatialIndex.out_feature_class = gpFeatureClass.GetAsText();
-                    gpResults2 = geoProcessor.Execute(removeSpatialIndex, trackCancel) as IGeoProcessorResult2;
-                    message.AddMessages(gpResults2.GetResultMessages());
-
-                    DataManagementTools.AddSpatialIndex addSpatialIndex =
-                        new DataManagementTools.AddSpatialIndex(gpFeatureClass.GetAsText());
-                    addSpatialIndex.out_feature_class = gpFeatureClass.GetAsText();
-
-                    addSpatialIndex.spatial_grid_1 = calculateDefaultGridIndex.grid_index1;
-                    addSpatialIndex.spatial_grid_2 = calculateDefaultGridIndex.grid_index2;
-                    addSpatialIndex.spatial_grid_3 = calculateDefaultGridIndex.grid_index3;
-
-                    gpResults2 = geoProcessor.Execute(addSpatialIndex, trackCancel) as IGeoProcessorResult2;
-                    message.AddMessages(gpResults2.GetResultMessages());
-                }
-            }
-            catch (Exception ex)
-            {
-                message.AddWarning(ex.Message);
-            }
-            finally
-            {
-                geoProcessor.AddOutputsToMap = storedOriginal;
-            }
-        }
     }
 }

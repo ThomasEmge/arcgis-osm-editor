@@ -1,4 +1,4 @@
-// (c) Copyright Esri, 2010 - 2013
+// (c) Copyright Esri, 2010 - 2016
 // This source is subject to the Apache 2.0 License.
 // Please see http://www.apache.org/licenses/LICENSE-2.0.html for details.
 // All other rights reserved.
@@ -425,7 +425,7 @@ namespace ESRI.ArcGIS.OSM.GeoProcessing
                     }
                 }
 
-                // lastly let's serialize the collected multipart-geometries back into relation elements
+                // lastly let's serialize the collected multi-part geometries back into relation elements
                 foreach (relation currentRelation in multiPartElements)
                 {
                     if (TrackCancel.Continue() == false)
